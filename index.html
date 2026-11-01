@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>有趣乘法 - 步驟引導直式計算</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            macaron: {
+              yellow: '#FEF3C7',
+              pink: '#FCE7F3',
+              blue: '#E0F2FE',
+              green: '#D1FAE5',
+              purple: '#EDE9FE',
+              accent: '#818CF8'
+            }
+          },
+          keyframes: {
+            bounceSlow: {
+              '0%, 100%': { transform: 'translateY(-6%)' },
+              '50%': { transform: 'translateY(0)' }
+            },
+            floatNum: {
+              '0%': { transform: 'translateY(0px) rotate(0deg)', opacity: '0.2' },
+              '50%': { transform: 'translateY(-20px) rotate(10deg)', opacity: '0.4' },
+              '100%': { transform: 'translateY(0px) rotate(0deg)', opacity: '0.2' }
+            },
+            pulseGlow: {
+              '0%, 100%': { boxShadow: '0 0 15px rgba(99, 102, 241, 0.6)' },
+              '50%': { boxShadow: '0 0 25px rgba(236, 72, 153, 0.8)' }
+            },
+            shake: {
+              '0%, 100%': { transform: 'translateX(0)' },
+              '20%, 60%': { transform: 'translateX(-8px)' },
+              '40%, 80%': { transform: 'translateX(8px)' }
+            },
+            popIn: {
+              '0%': { transform: 'scale(0.8)', opacity: '0' },
+              '100%': { transform: 'scale(1)', opacity: '1' }
+            },
+            coinFloat: {
+              '0%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+              '100%': { opacity: '0', transform: 'translateY(-50px) scale(1.3)' }
+            }
+          },
+          animation: {
+            bounceSlow: 'bounceSlow 3s infinite ease-in-out',
+            floatNum: 'floatNum 6s infinite ease-in-out',
+            pulseGlow: 'pulseGlow 2s infinite ease-in-out',
+            shake: 'shake 0.35s ease-in-out',
+            popIn: 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+            coinFloat: 'coinFloat 0.9s ease-out forwards'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Noto+Sans+TC:wght@500;700;900&display=swap');
+    
+    body {
+      font-family: 'Fredoka', 'Noto Sans TC', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    /* Strict Vertical Math CSS Grid Alignment */
+    .math-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 44px);
+      gap: 4px 0px;
+      align-items: end;
+      justify-items: center;
+      padding: 16px;
+    }
+
+    @media (max-width: 640px) {
+      .math-grid {
+        grid-template-columns: repeat(12, 32px);
+        padding: 8px;
+      }
+    }
+
+    .math-line {
+      grid-column: 1 / span 12;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(to right, #475569, #1E293B, #475569);
+      border-radius: 4px;
+      margin-top: 2px;
+      margin-bottom: 6px;
+    }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #F1F5F9; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-amber-50 via-sky-50 to-pink-50 min-h-screen text-slate-800 flex flex-col items-center overflow-x-hidden relative">
+
+  <!-- Background Decorative Floating Items -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+    <span class="absolute top-10 left-10 text-6xl text-pink-300 font-black animate-floatNum" style="animation-delay: 0s;">×</span>
+    <span class="absolute top-1/4 right-12 text-5xl text-sky-300 font-black animate-floatNum" style="animation-delay: 1.5s;">9</span>
+    <span class="absolute bottom-20 left-16 text-6xl text-amber-300 font-black animate-floatNum" style="animation-delay: 3s;">7</span>
+    <span class="absolute bottom-1/3 right-1/4 text-5xl text-purple-300 font-black animate-floatNum" style="animation-delay: 4.5s;">+</span>
+    <span class="absolute top-1/3 left-1/3 text-4xl text-emerald-300 font-black animate-floatNum" style="animation-delay: 2s;">5</span>
+  </div>
+
+  <canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-50 w-full h-full"></canvas>
+
+  <section id="screen-welcome" class="flex flex-col items-center justify-center w-full min-h-screen p-4 z-10">
+    <div class="bg-white/90 backdrop-blur-md p-8 sm:p-10 rounded-3xl shadow-2xl max-w-md w-full border-4 border-indigo-200 text-center relative overflow-hidden animate-popIn">
+      <div class="absolute -top-10 -right-10 w-32 h-32 bg-pink-300/30 rounded-full blur-xl"></div>
+      <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-sky-300/30 rounded-full blur-xl"></div>
+      
+      <div class="inline-block bg-gradient-to-tr from-indigo-500 to-pink-500 p-5 rounded-3xl shadow-lg mb-4 text-white animate-bounceSlow">
+        <i class="fa-solid fa-wand-magic-sparkles text-5xl"></i>
+      </div>
+      
+      <h1 class="text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-pink-500 to-amber-500 mb-2 tracking-wide">
+        有趣乘法
+      </h1>
+      <p class="text-slate-500 font-bold mb-6 text-base">輕鬆掌握直式乘法，解鎖榮譽寶庫！</p>
+      
+      <div class="bg-amber-100/80 border-2 border-amber-300 rounded-2xl p-3.5 text-amber-800 font-extrabold text-sm mb-6 flex items-center justify-center gap-2 shadow-sm">
+        <i class="fa-solid fa-cloud-arrow-up text-amber-600 text-lg"></i>
+        <span>你的通關紀錄與金幣會自動存檔喔！</span>
+      </div>
+
+      <div class="relative mb-6">
+        <input type="text" id="player-name" placeholder="請輸入你的好聽名字..." class="w-full px-5 py-4 text-lg rounded-2xl border-3 border-indigo-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 outline-none font-black text-center shadow-inner transition-all" maxlength="10">
+      </div>
+      
+      <button onclick="startGame()" class="w-full py-4 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 active:scale-95 text-white font-black text-2xl rounded-2xl shadow-xl transition-all border-b-4 border-indigo-800 flex items-center justify-center gap-3">
+        <span>開始遊戲</span> <i class="fa-solid fa-circle-play text-2xl"></i>
+      </button>
+    </div>
+  </section>
+
+  <section id="screen-levels" class="hidden flex-col w-full max-w-5xl p-4 min-h-screen z-10">
+    <!-- Header bar -->
+    <div class="flex flex-col sm:flex-row justify-between items-center bg-white/90 backdrop-blur-md p-5 rounded-3xl shadow-xl border-2 border-indigo-100 mb-6 gap-4 animate-popIn">
+      <div class="flex items-center gap-4">
+        <div class="w-14 h-14 bg-gradient-to-tr from-pink-400 to-indigo-500 rounded-2xl flex items-center justify-center text-white text-2xl font-black shadow-md">
+          <i class="fa-solid fa-user-astronaut"></i>
+        </div>
+        <div>
+          <div class="text-xs font-bold text-slate-400">冒險家玩家</div>
+          <div id="display-name" class="text-2xl font-black text-slate-800">Player</div>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-3">
+        <!-- Coin Counter -->
+        <div class="flex items-center gap-2 bg-amber-100/90 border-2 border-amber-300 px-4 py-2 rounded-2xl shadow-sm">
+          <i class="fa-solid fa-coins text-amber-500 text-2xl"></i>
+          <span id="total-coins" class="text-2xl font-black text-amber-600">0</span>
+        </div>
+        
+        <!-- Equipped Title -->
+        <div id="player-title" class="text-sm font-black text-purple-700 bg-purple-100 border-2 border-purple-300 px-4 py-2 rounded-2xl shadow-sm">
+          乘法新手
+        </div>
+
+        <!-- Shop Modal Trigger -->
+        <button onclick="openShop()" class="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-black px-4 py-2 rounded-2xl shadow-md border-b-4 border-rose-700 active:scale-95 transition-all flex items-center gap-2">
+          <i class="fa-solid fa-store"></i> 寶庫
+        </button>
+      </div>
+    </div>
+
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-2xl sm:text-3xl font-black text-slate-800 flex items-center gap-3">
+        <i class="fa-solid fa-flag-checkered text-indigo-500"></i> 關卡選擇 (7關全解鎖)
+      </h2>
+    </div>
+
+    <!-- Levels Grid (7 Levels) -->
+    <div id="levels-grid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4 mb-8">
+      <!-- Rendered dynamically by JS -->
+    </div>
+  </section>
+
+  <section id="screen-game" class="hidden flex-col w-full max-w-6xl p-2 sm:p-4 min-h-screen z-10">
+    <!-- Game Navigation Header -->
+    <div class="flex justify-between items-center mb-4 bg-white/90 backdrop-blur-md p-3 sm:px-6 rounded-3xl shadow-lg border-2 border-indigo-100">
+      <button onclick="showScreen('levels')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 active:scale-95 rounded-2xl font-black text-slate-700 flex items-center gap-2 transition-all border-b-2 border-slate-300">
+        <i class="fa-solid fa-arrow-left"></i> 關卡列表
+      </button>
+      
+      <div class="text-xl sm:text-2xl font-black text-indigo-600" id="game-level-title">第 1 关</div>
+      
+      <div class="flex items-center gap-2 font-black text-amber-600 bg-amber-100 border-2 border-amber-300 px-4 py-2 rounded-2xl shadow-sm">
+        <i class="fa-solid fa-coins text-amber-500 text-xl"></i>
+        <span id="game-coins" class="text-xl">0</span>
+      </div>
+    </div>
+
+    <div class="flex flex-col lg:flex-row gap-6 items-start">
+      
+      <!-- LEFT PANEL: Concise Guidance & Step History -->
+      <div class="w-full lg:w-1/3 bg-white/95 backdrop-blur-md rounded-3xl shadow-xl border-3 border-indigo-100 p-5 min-h-[420px] flex flex-col justify-between">
+        <div>
+          <div class="flex items-center gap-3 text-xl font-black text-slate-800 border-b-2 border-slate-100 pb-3 mb-4">
+            <i class="fa-solid fa-robot text-indigo-500 text-3xl"></i> 
+            <span>步驟小助手</span>
+          </div>
+          
+          <!-- History of steps logged cleanly with green checkmarks -->
+          <div id="step-history" class="space-y-2 mb-4 max-h-[220px] overflow-y-auto pr-1">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+
+        <!-- Current Active Prompt Card -->
+        <div id="active-step-card" class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-2xl p-5 text-center shadow-lg transform transition-all animate-popIn relative overflow-hidden">
+          <div class="text-xs font-extrabold text-indigo-100 mb-1 uppercase tracking-wider">當前步驟引導</div>
+          <div id="active-step-prompt" class="text-3xl sm:text-4xl font-black tracking-wider text-yellow-300 drop-shadow">
+            <!-- Example: 5 × 3 = ？ -->
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL: Strict Math Grid Board & Virtual Keyboard -->
+      <div class="w-full lg:w-2/3 bg-white/95 backdrop-blur-md rounded-3xl shadow-xl border-3 border-indigo-100 p-4 sm:p-8 flex flex-col items-center">
+        
+        <!-- Math Board Container -->
+        <div class="bg-gradient-to-b from-slate-50 to-indigo-50/40 border-3 border-indigo-100 rounded-3xl p-4 sm:p-8 shadow-inner overflow-x-auto w-full flex justify-center min-h-[320px]">
+          <div id="math-board" class="math-grid">
+            <!-- Strict Grid rendered dynamically by JS -->
+          </div>
+        </div>
+
+        <!-- Touch Virtual Keypad -->
+        <div class="w-full max-w-sm mt-6 grid grid-cols-3 gap-3">
+          <button onclick="inputDigit('1')" class="bg-slate-100 hover:bg-indigo-100 active:bg-indigo-200 text-2xl font-black text-slate-800 py-3 rounded-2xl shadow-md border-b-4 border-slate-300 transition-all active:scale-95">1</button>
+          <button onclick="inputDigit('2')" class="bg-slate-100 hover:bg-indigo-100 active:bg-indigo-200 text-2xl font-black text-slate-800 py-3 rounded-2xl shadow-md border-b-4 border-slate-300 transition-all active:scale-95">2</button>
+          <button onclick="inputDigit('3')" class="bg-slate-100 hover:bg-indigo-100 active:bg-indigo-200 text-2xl font-black text-slate-800 py-3 rounded-2xl shadow-md border-b-4 border-slate-300 transition-all active:scale-95">3</button>
+          <button onclick="inputDigit('4')" class="bg-slate-100 hover:bg-indigo-100 active:bg-indigo-200 text-2xl font-black text-slate-800 py-3 rounded-2xl shadow-md border-b-4 border-slate-300 transition-all active:scale-95">4</button>
+          <button onclick="inputDigit('5')" class="bg-slate-100 hover:bg-indigo-100 active:bg-indigo-200 text-2xl font-black text-slate-800 py-3 rounded-2xl shadow-md border-b-4 border-slate-300 transition-all active:scale-95">5</button>
+          <button onclick="inputDigit('6')" class="bg-slate-100 hover:bg-indigo-100 active:bg-indigo-200 text-2xl font-black text-slate-800 py-3 rounded-2xl shadow-md border-b-4 border-slate-300 transition-all active:scale-95">6</button>
+          <button onclick="inputDigit('7')" class="bg-slate-100 hover:bg-indigo-100 active:bg-indigo-200 text-2xl font-black text-slate-800 py-3 rounded-2xl shadow-md border-b-4 border-slate-300 transition-all active:scale-95">7</button>
+          <button onclick="inputDigit('8')" class="bg-slate-100 hover:bg-indigo-100 active:bg-indigo-200 text-2xl font-black text-slate-800 py-3 rounded-2xl shadow-md border-b-4 border-slate-300 transition-all active:scale-95">8</button>
+          <button onclick="inputDigit('9')" class="bg-slate-100 hover:bg-indigo-100 active:bg-indigo-200 text-2xl font-black text-slate-800 py-3 rounded-2xl shadow-md border-b-4 border-slate-300 transition-all active:scale-95">9</button>
+          
+          <button onclick="inputBackspace()" class="bg-rose-100 hover:bg-rose-200 text-rose-600 text-xl font-black py-3 rounded-2xl shadow-md border-b-4 border-rose-300 transition-all active:scale-95">
+            <i class="fa-solid fa-delete-left"></i>
+          </button>
+          <button onclick="inputDigit('0')" class="bg-slate-100 hover:bg-indigo-100 active:bg-indigo-200 text-2xl font-black text-slate-800 py-3 rounded-2xl shadow-md border-b-4 border-slate-300 transition-all active:scale-95">0</button>
+          <button onclick="inputEnter()" class="bg-emerald-500 hover:bg-emerald-600 text-white text-xl font-black py-3 rounded-2xl shadow-md border-b-4 border-emerald-700 transition-all active:scale-95">
+            <i class="fa-solid fa-check"></i>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <div id="shop-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex-items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-xl w-full p-6 sm:p-8 border-4 border-indigo-200 flex flex-col max-h-[90vh] animate-popIn my-auto">
+      <div class="flex justify-between items-center border-b-2 border-slate-100 pb-4 mb-4">
+        <h3 class="text-2xl font-black text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-gem text-pink-500"></i> 獎勵寶庫 (Shop)
+        </h3>
+        <button onclick="closeShop()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="overflow-y-auto space-y-6 pr-2">
+        <!-- Titles Section -->
+        <div>
+          <h4 class="text-base font-black text-indigo-600 mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-crown"></i> 稱號獎勵
+          </h4>
+          <div id="shop-titles" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- Dynamic JS -->
+          </div>
+        </div>
+
+        <!-- Stickers Section -->
+        <div>
+          <h4 class="text-base font-black text-pink-600 mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-icons"></i> 可愛貼紙圖鑑
+          </h4>
+          <div id="shop-stickers" class="grid grid-cols-3 sm:grid-cols-4 gap-3">
+            <!-- Dynamic JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'FunMultiplicationSaveData_v2';
+    let gameState = {
+      name: '',
+      coins: 0,
+      equippedTitle: '乘法新手',
+      unlockedTitles: ['乘法新手'],
+      unlockedStickers: []
+    };
+
+    let audioCtx = null;
+
+    // Game Core Variables
+    let currentLevel = 1;
+    let n1 = 0, n2 = 0;
+    let steps = [];
+    let currentStepIndex = 0;
+    let questionsCompleted = 0;
+    const QUESTIONS_PER_LEVEL = 5;
+
+    // Load Local Storage
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) gameState = { ...gameState, ...JSON.parse(saved) };
+    } catch(e) {}
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
+      document.getElementById('total-coins').textContent = gameState.coins;
+      document.getElementById('game-coins').textContent = gameState.coins;
+      document.getElementById('player-title').textContent = gameState.equippedTitle;
+    }
+
+    // Audio Synthesizer using Web Audio API
+    function initAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playTone(freq, type = 'sine', duration = 0.15, gainVal = 0.1) {
+      if (!audioCtx) return;
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch(e) {}
+    }
+
+    function playCoinSound() {
+      playTone(1000, 'sine', 0.08, 0.12);
+      setTimeout(() => playTone(1500, 'sine', 0.18, 0.15), 60);
+    }
+
+    function playErrorSound() {
+      playTone(180, 'sawtooth', 0.25, 0.15);
+    }
+
+    function playVictoryFanfare() {
+      const notes = [523.25, 659.25, 783.99, 1046.50];
+      notes.forEach((freq, idx) => {
+        setTimeout(() => playTone(freq, 'triangle', 0.2, 0.2), idx * 120);
+      });
+    }
+
+    function showScreen(id) {
+      ['screen-welcome', 'screen-levels', 'screen-game'].forEach(s => {
+        const el = document.getElementById(s);
+        el.classList.add('hidden');
+        el.classList.remove('flex');
+      });
+      const target = document.getElementById('screen-' + id);
+      target.classList.remove('hidden');
+      target.classList.add('flex');
+    }
+
+    function startGame() {
+      const name = document.getElementById('player-name').value.trim();
+      if (!name) return alert("請輸入你的名字喔！");
+      gameState.name = name;
+      document.getElementById('display-name').textContent = name;
+      saveState();
+      initAudio();
+      renderLevelsGrid();
+      showScreen('levels');
+    }
+
+    const SHOP_TITLES = [
+      { name: '乘法新手', cost: 0 },
+      { name: '計算學員', cost: 50 },
+      { name: '十位數克星', cost: 120 },
+      { name: '直式達人', cost: 250 },
+      { name: '心算魔法師', cost: 500 },
+      { name: '乘法大宗師', cost: 1000 }
+    ];
+
+    const SHOP_STICKERS = [
+      { id: 'stk1', icon: 'fa-cat', name: '幸運貓咪', cost: 30 },
+      { id: 'stk2', icon: 'fa-dog', name: '小狗旺旺', cost: 30 },
+      { id: 'stk3', icon: 'fa-rocket', name: '火箭發射', cost: 60 },
+      { id: 'stk4', icon: 'fa-dragon', name: '小噴火龍', cost: 100 },
+      { id: 'stk5', icon: 'fa-robot', name: '算術機器人', cost: 150 },
+      { id: 'stk6', icon: 'fa-crown', name: '黃金皇冠', cost: 200 }
+    ];
+
+    function openShop() {
+      renderShop();
+      document.getElementById('shop-modal').classList.remove('hidden');
+      document.getElementById('shop-modal').classList.add('flex');
+    }
+
+    function closeShop() {
+      document.getElementById('shop-modal').classList.add('hidden');
+      document.getElementById('shop-modal').classList.remove('flex');
+    }
+
+    function renderShop() {
+      // Render Titles
+      const titleContainer = document.getElementById('shop-titles');
+      titleContainer.innerHTML = '';
+      SHOP_TITLES.forEach(t => {
+        const unlocked = gameState.unlockedTitles.includes(t.name);
+        const equipped = gameState.equippedTitle === t.name;
+        titleContainer.innerHTML += `
+          <div class="border-2 ${equipped ? 'border-purple-500 bg-purple-50' : 'border-slate-200 bg-white'} rounded-2xl p-3 flex justify-between items-center">
+            <div>
+              <div class="font-black text-slate-800 text-sm">${t.name}</div>
+              <div class="text-xs text-amber-600 font-bold">${t.cost === 0 ? '免費' : t.cost + ' 🪙'}</div>
+            </div>
+            ${equipped ? `
+              <span class="text-xs bg-purple-600 text-white font-black px-3 py-1 rounded-full">裝備中</span>
+            ` : unlocked ? `
+              <button onclick="equipTitle('${t.name}')" class="text-xs bg-indigo-500 hover:bg-indigo-600 text-white font-black px-3 py-1 rounded-full">佩戴</button>
+            ` : `
+              <button onclick="buyTitle('${t.name}', ${t.cost})" class="text-xs bg-amber-500 hover:bg-amber-600 text-white font-black px-3 py-1 rounded-full">購買</button>
+            `}
+          </div>
+        `;
+      });
+
+      // Render Stickers
+      const stickerContainer = document.getElementById('shop-stickers');
+      stickerContainer.innerHTML = '';
+      SHOP_STICKERS.forEach(s => {
+        const unlocked = gameState.unlockedStickers.includes(s.id);
+        stickerContainer.innerHTML += `
+          <div class="border-2 ${unlocked ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 bg-slate-50'} rounded-2xl p-3 flex flex-col items-center justify-center text-center gap-1">
+            <i class="fa-solid ${s.icon} text-3xl ${unlocked ? 'text-emerald-500 animate-bounceSlow' : 'text-slate-300'}"></i>
+            <div class="text-xs font-black text-slate-700 mt-1">${s.name}</div>
+            ${unlocked ? `
+              <span class="text-[10px] text-emerald-600 font-bold"><i class="fa-solid fa-check"></i> 已解鎖</span>
+            ` : `
+              <button onclick="buySticker('${s.id}', ${s.cost})" class="mt-1 text-[11px] bg-amber-500 hover:bg-amber-600 text-white font-black px-2 py-0.5 rounded-full">
+                ${s.cost} 🪙
+              </button>
+            `}
+          </div>
+        `;
+      });
+    }
+
+    function buyTitle(titleName, cost) {
+      if (gameState.coins < cost) return alert("金幣不足喔！多算對題目來賺取金幣吧！");
+      gameState.coins -= cost;
+      gameState.unlockedTitles.push(titleName);
+      gameState.equippedTitle = titleName;
+      saveState();
+      renderShop();
+    }
+
+    function equipTitle(titleName) {
+      gameState.equippedTitle = titleName;
+      saveState();
+      renderShop();
+    }
+
+    function buySticker(stickerId, cost) {
+      if (gameState.coins < cost) return alert("金幣不足喔！");
+      gameState.coins -= cost;
+      gameState.unlockedStickers.push(stickerId);
+      saveState();
+      renderShop();
+    }
+
+    const LEVEL_CONFIG = [
+      null,
+      { type:'一位數 × 一位數', rule:'基礎運算', desc:'九九乘法表', example:'7 × 8' },
+      { type:'兩位數 × 一位數', rule:'不進位', desc:'各個位數相乘皆小於 10', example:'12 × 3' },
+      { type:'兩位數 × 一位數', rule:'個位進位', desc:'僅個位乘以一位數時需進位', example:'14 × 4' },
+      { type:'兩位數 × 一位數', rule:'連續進位', desc:'個位、十位皆需進位', example:'76 × 8' },
+      { type:'三位數 × 一位數', rule:'不進位', desc:'無進位負擔，熟悉三位數', example:'123 × 3' },
+      { type:'三位數 × 一位數', rule:'單次進位', desc:'整個直式僅發生一次進位', example:'124 × 4' },
+      { type:'三位數 × 一位數', rule:'連續進位', desc:'多個位值連續產生進位', example:'345 × 6' },
+
+    ];
+
+    function digitsOf(n) { return String(n).split('').map(Number); }
+
+    function singleDigitCarryStats(a, b) {
+      const ds = digitsOf(a).reverse();
+      let carry = 0, carryCount = 0;
+      const carryFlags = [];
+      for (const d of ds) {
+        const total = d * b + carry;
+        carry = Math.floor(total / 10);
+        carryFlags.push(carry > 0);
+        if (carry > 0) carryCount++;
+      }
+      return { carryCount, carryFlags, finalCarry: carry };
+    }
+
+    function rowHasCarry(a, digit) {
+      if (digit === 0) return false;
+      return singleDigitCarryStats(a, digit).carryCount > 0;
+    }
+
+    function rowCarryCount(a, digit) {
+      if (digit === 0) return 0;
+      return singleDigitCarryStats(a, digit).carryCount;
+    }
+
+    function randomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function pickPair(aMin, aMax, bMin, bMax, predicate, fallback) {
+      for (let tries = 0; tries < 12000; tries++) {
+        const a = randomInt(aMin, aMax);
+        const b = randomInt(bMin, bMax);
+        if (predicate(a, b)) return [a, b];
+      }
+      return fallback;
+    }
+
+    function noCarryAllRows(a, b) {
+      return digitsOf(b).every(d => d === 0 || rowCarryCount(a, d) === 0);
+    }
+
+    function totalRowCarries(a, b) {
+      return digitsOf(b).reduce((sum, d) => sum + rowCarryCount(a, d), 0);
+    }
+
+    function generateProblem(level) {
+      switch(level) {
+        case 1: return [randomInt(2,9), randomInt(2,9)];
+        case 2: return pickPair(10,99,2,9,(a,b)=>singleDigitCarryStats(a,b).carryCount===0,[12,3]);
+        case 3: return pickPair(10,99,2,9,(a,b)=>{const x=singleDigitCarryStats(a,b); return x.carryFlags[0] && !x.carryFlags[1];},[14,4]);
+        case 4: return pickPair(10,99,2,9,(a,b)=>{const x=singleDigitCarryStats(a,b); return x.carryFlags[0] && x.carryFlags[1];},[76,8]);
+        case 5: return pickPair(100,999,2,9,(a,b)=>singleDigitCarryStats(a,b).carryCount===0,[123,3]);
+        case 6: return pickPair(100,999,2,9,(a,b)=>singleDigitCarryStats(a,b).carryCount===1,[124,4]);
+        case 7: return pickPair(100,999,2,9,(a,b)=>singleDigitCarryStats(a,b).carryCount>=2,[345,6]);
+        default:return [7,8];
+      }
+    }
+
+    function renderLevelsGrid() {
+      const grid = document.getElementById('levels-grid');
+      grid.innerHTML = '';
+      for (let i = 1; i < LEVEL_CONFIG.length; i++) {
+        const cfg = LEVEL_CONFIG[i];
+        grid.innerHTML += `
+          <button onclick="playLevel(${i})" class="bg-white hover:bg-indigo-50 border-3 border-indigo-100 rounded-3xl p-4 flex flex-col items-center justify-center gap-2 shadow-sm hover:shadow-md transition-all active:scale-95 group text-center">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-500 text-white flex items-center justify-center font-black text-xl shadow-md group-hover:scale-110 transition-transform">${i}</div>
+            <div class="text-xs font-black text-slate-700">${cfg.type}</div>
+            <div class="text-[11px] font-bold text-indigo-500">${cfg.rule}</div>
+          </button>`;
+      }
+    }
+
+    function playLevel(level) {
+      initAudio();
+      currentLevel = level;
+      const cfg = LEVEL_CONFIG[level];
+      questionsCompleted = 0;
+      document.getElementById('game-level-title').textContent = `第 ${level} 關｜第 1 / ${QUESTIONS_PER_LEVEL} 題｜${cfg.type}｜${cfg.rule}`;
+      [n1, n2] = generateProblem(level);
+
+      compileVerticalSteps(n1, n2);
+      currentStepIndex = 0;
+      inputBuffer = '';
+      updateGameView();
+      showScreen('game');
+    }
+
+    /*
+     STRICT GRID COLUMNS (8 Columns Total):
+     Col 8: Ones digit answer
+     Col 7: Gap between Tens & Ones (Carries from Ones go here)
+     Col 6: Tens digit answer
+     Col 5: Gap between Hundreds & Tens (Carries from Tens go here)
+     Col 4: Hundreds digit answer
+     Col 3: Gap between Thousands & Hundreds (Carries from Hundreds go here)
+     Col 2: Thousands digit answer
+    */
+    function compileVerticalSteps(num1, num2) {
+      steps = [];
+      const aDigits = String(num1).split('').reverse().map(Number);
+      const bDigits = String(num2).split('').reverse().map(Number);
+      const placeNames = ['個位','十位','百位','千位'];
+
+      bDigits.forEach((multDigit, row) => {
+        if (row > 0) {
+          for (let z = 0; z < row; z++) {
+            steps.push({ type:'shiftZero', row, digitIndex:z, place:placeNames[z] || '低位', prompt:`先按位值在${placeNames[z] || '低位'}補 0。`, expected:0, value:null });
+          }
+        }
+        if (multDigit === 0) {
+          steps.push({ type:'zeroRow', row, prompt:`乘數的${placeNames[row] || '高位'}是 0，這一層部分積是 0。`, expected:0, value:0 });
+          return;
+        }
+        let carry = 0;
+        aDigits.forEach((d, i) => {
+          const raw = d * multDigit + carry;
+          const ansDigit = raw % 10;
+          const nextCarry = Math.floor(raw / 10);
+          steps.push({
+            type:'answerDigit', row, digitIndex:i, place:placeNames[i] || '高位',
+            prompt: carry > 0 ? `${d} × ${multDigit} + ${carry}（進位）= ？` : `${d} × ${multDigit} = ？`,
+            expected:ansDigit, value:null
+          });
+          if (nextCarry > 0) {
+            steps.push({
+              type:'carry', row, digitIndex:i, place:placeNames[i] || '高位',
+              prompt:`把進位數寫在下一個位值之間：進位 = ？`,
+              expected:nextCarry, value:null
+            });
+          }
+          carry = nextCarry;
+        });
+        if (carry > 0) {
+          steps.push({ type:'answerDigit', row, digitIndex:aDigits.length, place:'最高位', prompt:`把最後的進位 ${carry} 寫下來。`, expected:carry, value:null, finalCarry:true });
+        }
+        steps.push({ type:'rowDone', row, prompt:`第 ${row+1} 層部分積完成！`, expected:null, value:null });
+      });
+
+      if (bDigits.length > 1) {
+        steps.push({ type:'final', prompt:'把各層部分積按位值對齊後相加，最後答案 = ？', expected:num1*num2, value:null });
+      }
+    }
+
+    function partialValueForRow(row) {
+      const d = String(n2).split('').reverse().map(Number)[row] || 0;
+      return n1 * d;
+    }
+
+    function rowIsComplete(row) {
+      const rowSteps = steps.filter(s => s.row === row && ['answerDigit','carry','shiftZero'].includes(s.type));
+      return rowSteps.length === 0 || rowSteps.every(s => s.value !== null);
+    }
+
+    function updateGameView() {
+      while (currentStepIndex < steps.length && steps[currentStepIndex].type === 'rowDone') currentStepIndex++;
+
+      const historyEl = document.getElementById('step-history');
+      historyEl.innerHTML = '';
+      for (let i = 0; i < currentStepIndex; i++) {
+        const s = steps[i];
+        if (s.type === 'rowDone') continue;
+        let text = s.type === 'carry' ? `已記錄進位` :
+                   s.type === 'shiftZero' ? `已在${s.place}補 0` :
+                   s.type === 'answerDigit' ? `完成${s.place}計算` :
+                   s.type === 'zeroRow' ? `0 的部分積已處理` : `完成最後相加`;
+        historyEl.innerHTML += `<div class="text-emerald-700 font-black text-xs sm:text-sm bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 flex items-center gap-2 animate-popIn"><i class="fa-solid fa-circle-check text-emerald-500 text-base"></i>${text}</div>`;
+      }
+      historyEl.scrollTop = historyEl.scrollHeight;
+
+      if (currentStepIndex < steps.length) {
+        document.getElementById('active-step-card').classList.remove('hidden');
+        document.getElementById('active-step-prompt').textContent = steps[currentStepIndex].prompt;
+      } else document.getElementById('active-step-card').classList.add('hidden');
+
+      let html = '';
+      const totalCols = 12;
+      const rightCol = 12;
+      const placeNumber = (value,row,cls,shift=0) => {
+        let out=''; String(value).split('').reverse().forEach((digit,i)=>{
+          out += `<div class="${cls}" style="grid-column:${rightCol-(i+shift)*2};grid-row:${row};">${digit}</div>`;
+        }); return out;
+      };
+
+      html += placeNumber(n1,1,'text-3xl sm:text-4xl font-black text-slate-800');
+      html += `<div class="text-3xl font-black text-slate-600" style="grid-column:5;grid-row:2;">×</div>`;
+      html += placeNumber(n2,2,'text-3xl sm:text-4xl font-black text-slate-800');
+
+      // Carries for the currently active multiplication row. They sit immediately above the first line.
+      const active = steps[currentStepIndex];
+      const activeRow = active && active.row !== undefined ? active.row : -1;
+      steps.forEach((s,idx)=>{
+        if(s.type==='carry' && s.row===activeRow && idx<=currentStepIndex){
+          const col = Math.max(1, rightCol - s.digitIndex * 2 - 1);
+          if(idx===currentStepIndex) html += `<div class="w-8 h-8 text-lg font-black bg-amber-200 border-2 border-amber-500 rounded-lg text-rose-600 flex items-center justify-center animate-pulseGlow self-end mb-1 z-10" style="grid-column:${col};grid-row:2;">?</div>`;
+          else if(s.value!==null) html += `<div class="w-8 h-8 text-xl font-black text-rose-600 flex items-center justify-center self-end mb-1 z-10" style="grid-column:${col};grid-row:2;">${s.value}</div>`;
+        }
+      });
+      html += `<div class="math-line" style="grid-column:5 / span 8;grid-row:3;"></div>`;
+
+      const bDigits=String(n2).split('').reverse().map(Number);
+      let visualRow=4;
+      bDigits.forEach((d,rowIdx)=>{
+        const rowSteps=steps.filter(s=>s.row===rowIdx && (s.type==='answerDigit' || s.type==='shiftZero'));
+        rowSteps.forEach(s=>{
+          const globalIdx=steps.indexOf(s);
+          const col = s.type==='shiftZero' ? Math.max(1,rightCol-s.digitIndex*2) : Math.max(1,rightCol-(s.digitIndex+rowIdx)*2);
+          if(globalIdx<currentStepIndex && s.value!==null){
+            html += `<div class="text-2xl sm:text-3xl font-black text-indigo-700 animate-popIn" style="grid-column:${col};grid-row:${visualRow};">${s.value}</div>`;
+          } else if(globalIdx===currentStepIndex){
+            html += `<div class="w-11 h-12 text-2xl font-black bg-indigo-100 border-3 border-indigo-500 rounded-xl text-indigo-700 flex items-center justify-center animate-pulseGlow" style="grid-column:${col};grid-row:${visualRow};">?</div>`;
+          }
+        });
+        if(d===0 && (activeRow>rowIdx || (active && active.type==='final'))) html += placeNumber(0,visualRow,'text-2xl sm:text-3xl font-black text-indigo-700',rowIdx);
+        visualRow++;
+      });
+
+      if(bDigits.length>1){
+        html += `<div class="math-line" style="grid-column:5 / span 8;grid-row:${visualRow};"></div>`; visualRow++;
+        const finalIdx=steps.findIndex(s=>s.type==='final');
+        if(finalIdx<currentStepIndex) html += placeNumber(n1*n2,visualRow,'text-3xl sm:text-4xl font-black text-purple-700');
+        else if(finalIdx===currentStepIndex) html += `<div class="px-3 h-12 text-xl font-black bg-purple-100 border-3 border-purple-500 rounded-xl text-purple-700 flex items-center justify-center animate-pulseGlow" style="grid-column:6 / span 7;grid-row:${visualRow};">輸入最後答案</div>`;
+      }
+      document.getElementById('math-board').innerHTML=html;
+    }
+
+    let inputBuffer = '';
+
+    function inputDigit(digit) {
+      if (currentStepIndex >= steps.length) return;
+      const step=steps[currentStepIndex];
+      if(step.type==='zeroRow' || step.type==='rowDone') { currentStepIndex++; updateGameView(); return; }
+
+      // 不即時判斷每一步對錯：學生輸入甚麼就先顯示甚麼，完成整道直式後才檢查。
+      if(step.type==='answerDigit' || step.type==='carry' || step.type==='shiftZero'){
+        step.value=parseInt(digit,10); currentStepIndex++;
+        playTone(520,'sine',0.06,0.05);
+        while(currentStepIndex<steps.length && (steps[currentStepIndex].type==='rowDone' || steps[currentStepIndex].type==='zeroRow')) currentStepIndex++;
+        updateGameView();
+        if(currentStepIndex>=steps.length) setTimeout(checkWholeWorking,350);
+        return;
+      }
+
+      inputBuffer += digit;
+      document.getElementById('active-step-prompt').textContent = `${step.prompt}　你的答案：${inputBuffer}`;
+    }
+
+    function inputBackspace() {
+      inputBuffer=inputBuffer.slice(0,-1);
+      if(currentStepIndex<steps.length){
+        const step=steps[currentStepIndex];
+        document.getElementById('active-step-prompt').textContent = `${step.prompt}${inputBuffer ? '　你的答案：'+inputBuffer : ''}`;
+      }
+      playTone(300,'sine',0.1,0.05);
+    }
+
+    function inputEnter() {
+      if(currentStepIndex>=steps.length) return;
+      const step=steps[currentStepIndex];
+      if(step.type!=='final') return;
+      if(inputBuffer!==''){
+        step.value=parseInt(inputBuffer,10); inputBuffer=''; currentStepIndex++;
+        updateGameView(); setTimeout(checkWholeWorking,350);
+      }
+    }
+
+    function checkWholeWorking() {
+      const checked=steps.filter(s=>['answerDigit','carry','shiftZero','final'].includes(s.type) && s.expected!==null);
+      if(checked.every(s=>s.value===s.expected)){ playCoinSound(); handleStageClear(); return; }
+      playErrorSound();
+      const board=document.getElementById('math-board'); board.classList.remove('animate-shake'); void board.offsetWidth; board.classList.add('animate-shake');
+      const modal=document.createElement('div');
+      modal.className='fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4';
+      modal.innerHTML=`<div class="bg-white p-8 rounded-3xl shadow-2xl text-center max-w-sm w-full animate-popIn border-4 border-rose-200"><div class="text-5xl mb-3">🧠</div><h2 class="text-2xl font-black text-slate-800 mb-2">整道直式完成了</h2><p class="text-rose-600 font-black mb-2">這次答案有錯誤。</p><p class="text-slate-500 font-bold mb-6">請重新計算整道直式。系統不會指出哪一步錯，避免用猜的方法找答案。</p><button id="retry-working-btn" class="w-full py-4 bg-indigo-500 text-white font-black text-xl rounded-2xl border-b-4 border-indigo-800 active:scale-95 transition-all">重新計算</button></div>`;
+      document.body.appendChild(modal);
+      modal.querySelector('#retry-working-btn').onclick=()=>{ modal.remove(); compileVerticalSteps(n1,n2); currentStepIndex=0; inputBuffer=''; updateGameView(); };
+    }
+
+    function showCoinRewardAnimation(amount = currentLevel) {
+      const el = document.createElement('div');
+      el.innerHTML = `+${amount} <i class="fa-solid fa-coins text-amber-500"></i>`;
+      el.className = 'fixed text-2xl font-black text-amber-500 drop-shadow-lg z-50 animate-coinFloat pointer-events-none flex items-center gap-1';
+      
+      el.style.left = '55%';
+      el.style.top = '45%';
+      
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 900);
+    }
+
+    function handleStageClear() {
+      // Reward is granted once per completed question, not once per calculation step.
+      const reward = currentLevel;
+      gameState.coins += reward;
+      saveState();
+      showCoinRewardAnimation(reward);
+      questionsCompleted++;
+
+      if (questionsCompleted < QUESTIONS_PER_LEVEL) {
+        playVictoryFanfare();
+        const cfg = LEVEL_CONFIG[currentLevel];
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4';
+        modal.innerHTML = `
+          <div class="bg-white p-8 rounded-3xl shadow-2xl text-center max-w-sm w-full animate-popIn border-4 border-indigo-200 flex flex-col items-center">
+            <div class="w-20 h-20 bg-gradient-to-tr from-amber-400 to-yellow-300 rounded-full flex items-center justify-center text-white text-4xl mb-4 border-4 border-amber-200 shadow-lg animate-bounceSlow">
+              <i class="fa-solid fa-coins"></i>
+            </div>
+            <h2 class="text-3xl font-black text-slate-800 mb-2">答對了！</h2>
+            <p class="text-amber-600 font-black text-xl mb-2">+${reward} 🪙</p>
+            <p class="text-slate-500 font-bold mb-6">已完成 ${questionsCompleted} / ${QUESTIONS_PER_LEVEL} 題</p>
+            <button id="next-question-btn" class="w-full py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-black text-xl rounded-2xl shadow-xl border-b-4 border-indigo-800 active:scale-95 transition-all">
+              下一題 <i class="fa-solid fa-arrow-right ml-1"></i>
+            </button>
+          </div>`;
+        document.body.appendChild(modal);
+        modal.querySelector('#next-question-btn').onclick = () => {
+          modal.remove();
+          [n1, n2] = generateProblem(currentLevel);
+          compileVerticalSteps(n1, n2);
+          currentStepIndex = 0;
+          inputBuffer = '';
+          document.getElementById('game-level-title').textContent = `第 ${currentLevel} 關｜第 ${questionsCompleted + 1} / ${QUESTIONS_PER_LEVEL} 題｜${cfg.type}｜${cfg.rule}`;
+          updateGameView();
+        };
+        return;
+      }
+
+      playVictoryFanfare();
+      triggerConfetti();
+      const totalReward = currentLevel * QUESTIONS_PER_LEVEL;
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4';
+      modal.innerHTML = `
+        <div class="bg-white p-8 rounded-3xl shadow-2xl text-center max-w-sm w-full animate-popIn border-4 border-indigo-200 flex flex-col items-center">
+          <div class="w-20 h-20 bg-gradient-to-tr from-amber-400 to-yellow-300 rounded-full flex items-center justify-center text-white text-4xl mb-4 border-4 border-amber-200 shadow-lg animate-bounceSlow">
+            <i class="fa-solid fa-trophy"></i>
+          </div>
+          <h2 class="text-3xl font-black text-slate-800 mb-2">第 ${currentLevel} 關完成！</h2>
+          <p class="text-slate-500 font-bold mb-2">成功完成 5 條題目！</p>
+          <p class="text-amber-600 font-black text-xl mb-6">本關共獲得 ${totalReward} 🪙</p>
+          <button id="level-complete-btn" class="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-xl rounded-2xl shadow-xl border-b-4 border-emerald-800 active:scale-95 transition-all">
+            繼續挑戰 <i class="fa-solid fa-arrow-right ml-1"></i>
+          </button>
+        </div>`;
+      document.body.appendChild(modal);
+      modal.querySelector('#level-complete-btn').onclick = () => { modal.remove(); showScreen('levels'); };
+    }
+
+    const canvas = document.getElementById('confetti-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function triggerConfetti() {
+      particles = [];
+      const colors = ['#818CF8', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#A855F7'];
+      for (let i = 0; i < 110; i++) {
+        particles.push({
+          x: canvas.width / 2,
+          y: canvas.height / 2,
+          vx: (Math.random() - 0.5) * 22,
+          vy: (Math.random() - 0.8) * 22,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          size: Math.random() * 9 + 6,
+          rot: Math.random() * 360,
+          vRot: (Math.random() - 0.5) * 12,
+          life: 1
+        });
+      }
+      animateConfetti();
+    }
+
+    function animateConfetti() {
+      if (particles.length === 0) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        return;
+      }
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.45; // Gravity acceleration
+        p.rot += p.vRot;
+        p.life -= 0.008;
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rot * Math.PI) / 180);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = Math.max(0, p.life);
+        ctx.beginPath();
+        ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        if (p.life <= 0 || p.y > canvas.height) particles.splice(i, 1);
+      }
+      requestAnimationFrame(animateConfetti);
+    }
+
+    // Physical Keyboard Listener
+    window.addEventListener('keydown', (e) => {
+      if (document.getElementById('screen-game').classList.contains('hidden')) return;
+      if (e.key >= '0' && e.key <= '9') {
+        inputDigit(e.key);
+      } else if (e.key === 'Backspace') {
+        inputBackspace();
+      } else if (e.key === 'Enter') {
+        inputEnter();
+      }
+    });
+
+    window.onload = () => {
+      if (gameState.name) {
+        document.getElementById('player-name').value = gameState.name;
+        document.getElementById('display-name').textContent = gameState.name;
+        document.getElementById('total-coins').textContent = gameState.coins;
+        document.getElementById('game-coins').textContent = gameState.coins;
+        document.getElementById('player-title').textContent = gameState.equippedTitle;
+      }
+    };
+  </script>
+</body>
+</html>
